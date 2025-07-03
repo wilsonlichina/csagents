@@ -1,6 +1,6 @@
 """
-业务工具模块
-定义Agent使用的LCSC业务工具
+Business Tools Module
+Defines LCSC business tools used by the Agent
 """
 
 from strands import tool
@@ -105,13 +105,13 @@ MOCK_PRODUCTS = {
 @tool
 def query_order_by_id(order_id: str) -> Dict:
     """
-    根据订单号查询订单信息
+    Query order information by order ID
     
     Args:
-        order_id (str): 订单号，如 LC123456
+        order_id (str): Order ID, e.g. LC123456
         
     Returns:
-        Dict: 订单详细信息，包括状态、产品、金额等
+        Dict: Detailed order information including status, products, amount, etc.
     """
     print(f"🔍 查询订单: {order_id}")
     
@@ -134,13 +134,13 @@ def query_order_by_id(order_id: str) -> Dict:
 @tool
 def query_customer_by_email(email: str) -> Dict:
     """
-    根据邮箱查询客户信息
+    Query customer information by email address
     
     Args:
-        email (str): 客户邮箱地址
+        email (str): Customer email address
         
     Returns:
-        Dict: 客户详细信息
+        Dict: Detailed customer information
     """
     print(f"🔍 查询客户: {email}")
     
@@ -163,13 +163,13 @@ def query_customer_by_email(email: str) -> Dict:
 @tool
 def query_orders_by_customer(customer_email: str) -> Dict:
     """
-    根据客户邮箱查询该客户的所有订单
+    Query all orders for a customer by email address
     
     Args:
-        customer_email (str): 客户邮箱地址
+        customer_email (str): Customer email address
         
     Returns:
-        Dict: 客户的订单列表
+        Dict: List of customer orders
     """
     print(f"🔍 查询客户订单: {customer_email}")
     
@@ -196,13 +196,13 @@ def query_orders_by_customer(customer_email: str) -> Dict:
 @tool
 def query_product_by_id(product_id: str) -> Dict:
     """
-    根据产品ID查询产品信息
+    Query product information by product ID
     
     Args:
-        product_id (str): 产品ID，如 08-50-0113
+        product_id (str): Product ID, e.g. 08-50-0113
         
     Returns:
-        Dict: 产品详细信息
+        Dict: Detailed product information
     """
     print(f"🔍 查询产品: {product_id}")
     
@@ -225,13 +225,13 @@ def query_product_by_id(product_id: str) -> Dict:
 @tool
 def query_inventory_status(product_id: str) -> Dict:
     """
-    查询产品库存状态
+    Query product inventory status
     
     Args:
-        product_id (str): 产品ID
+        product_id (str): Product ID
         
     Returns:
-        Dict: 库存状态信息（现货/订货）
+        Dict: Inventory status information (in stock/on order)
     """
     print(f"🔍 查询库存: {product_id}")
     
@@ -264,14 +264,14 @@ def query_inventory_status(product_id: str) -> Dict:
 @tool
 def intercept_order_shipping(order_id: str, reason: str) -> Dict:
     """
-    拦截订单发货
+    Intercept order shipping
     
     Args:
-        order_id (str): 订单号
-        reason (str): 拦截原因
+        order_id (str): Order ID
+        reason (str): Reason for interception
         
     Returns:
-        Dict: 拦截操作结果
+        Dict: Interception operation result
     """
     print(f"🛑 拦截订单发货: {order_id}, 原因: {reason}")
     
@@ -320,13 +320,13 @@ def intercept_order_shipping(order_id: str, reason: str) -> Dict:
 @tool
 def query_logistics_status(order_id: str) -> Dict:
     """
-    查询订单物流状态
+    Query order logistics status
     
     Args:
-        order_id (str): 订单号
+        order_id (str): Order ID
         
     Returns:
-        Dict: 物流状态信息
+        Dict: Logistics status information
     """
     print(f"🚚 查询物流状态: {order_id}")
     
