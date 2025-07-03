@@ -28,7 +28,7 @@ def load_emails() -> pd.DataFrame:
         print(f"❌ 加载邮件失败: {str(e)}")
         return pd.DataFrame(columns=['发件人', '收件人', '发送时间', '主题', '类型'])
 
-def on_email_select(evt: gr.SelectData) -> Tuple[str, bool]:
+def on_email_select(evt: gr.SelectData) -> str:
     """邮件选择事件处理"""
     global current_selected_email
     
@@ -39,21 +39,21 @@ def on_email_select(evt: gr.SelectData) -> Tuple[str, bool]:
             
             if current_selected_email:
                 print(f"📧 选中邮件: {current_selected_email.file_name}")
-                return f"已选中邮件: {current_selected_email.subject}", True
+                return f"已选中邮件: {current_selected_email.subject}"
             else:
-                return "选择的邮件无效", False
+                return "选择的邮件无效"
         else:
-            return "请选择一封邮件", False
+            return "请选择一封邮件"
     except Exception as e:
         print(f"❌ 邮件选择错误: {str(e)}")
-        return f"选择邮件时发生错误: {str(e)}", False
+        return f"选择邮件时发生错误: {str(e)}"
 
-def show_email_detail() -> Tuple[str, str, str, str, str, bool]:
+def show_email_detail() -> Tuple[str, str, str, str, str, dict]:
     """显示邮件详情"""
     global current_selected_email
     
     if current_selected_email is None:
-        return "", "", "", "", "请先选择一封邮件", False
+        return "", "", "", "", "请先选择一封邮件", gr.update(visible=False)
     
     try:
         # 格式化邮件内容
@@ -87,23 +87,23 @@ def show_email_detail() -> Tuple[str, str, str, str, str, bool]:
             current_selected_email.send_time,
             current_selected_email.subject,
             content_display,
-            True  # 显示详情面板
+            gr.update(visible=True, open=True)  # 显示详情面板
         )
     except Exception as e:
         error_msg = f"显示邮件详情时发生错误: {str(e)}"
         print(f"❌ {error_msg}")
-        return "", "", "", "", error_msg, False
+        return "", "", "", "", error_msg, gr.update(visible=False)
 
-def close_email_detail() -> bool:
+def close_email_detail() -> dict:
     """关闭邮件详情"""
-    return False
+    return gr.update(visible=False)
 
-async def process_email_with_agent(llm_choice: str, system_prompt: str, progress=gr.Progress()) -> Tuple[str, str, bool]:
+async def process_email_with_agent(llm_choice: str, system_prompt: str, progress=gr.Progress()) -> Tuple[str, str, dict]:
     """使用AI Agent处理邮件"""
     global current_selected_email
     
     if current_selected_email is None:
-        return "请先选择一封邮件", "", False
+        return "请先选择一封邮件", "", gr.update(open=False)
     
     try:
         progress(0, desc="初始化AI Agent...")
@@ -163,12 +163,12 @@ async def process_email_with_agent(llm_choice: str, system_prompt: str, progress
         
         progress(1.0, desc="处理完成！")
         
-        return "✅ AI处理完成！", result_display, True
+        return "✅ AI处理完成！", result_display, gr.update(open=True)
         
     except Exception as e:
         error_msg = f"AI处理失败: {str(e)}"
         print(f"❌ {error_msg}")
-        return error_msg, f"处理过程中发生错误:\n{error_msg}", True
+        return error_msg, f"处理过程中发生错误:\n{error_msg}", gr.update(open=True)
 
 def create_interface() -> gr.Blocks:
     """创建Gradio界面"""
@@ -299,7 +299,7 @@ def create_interface() -> gr.Blocks:
         # 邮件选择
         email_list.select(
             fn=on_email_select,
-            outputs=[status_display, view_btn]
+            outputs=[status_display]
         )
         
         # 查看邮件详情
