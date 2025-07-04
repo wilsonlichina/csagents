@@ -10,11 +10,31 @@ from typing import Optional, List, Tuple
 import json
 
 from email_manager import email_manager, EmailData
-from ai_agent import get_agent, ProcessingResult
+from ai_agent import get_agent, ProcessingResult, get_available_models, LCSCEmailAgent
 
 # 全局变量
 current_selected_email: Optional[EmailData] = None
 processing_results: List[ProcessingResult] = []
+
+def get_model_choices() -> List[str]:
+    """获取模型选择列表（用于Gradio界面）"""
+    # 将内部模型名称映射到用户友好的显示名称
+    model_display_mapping = {
+        "claude-3-5-sonnet": "Claude 3.5 Sonnet",
+        "claude-3-7-sonnet": "Claude 3.7 Sonnet",
+        "claude-3.5-sonnet": "Claude 3.5 Sonnet (别名)",
+        "claude-3.7-sonnet": "Claude 3.7 Sonnet (别名)"
+    }
+    
+    available_models = LCSCEmailAgent.get_supported_models()
+    choices = []
+    
+    for model_name in available_models:
+        display_name = model_display_mapping.get(model_name, model_name)
+        if display_name not in choices:  # 避免重复
+            choices.append(display_name)
+    
+    return sorted(choices)
 
 def load_emails() -> pd.DataFrame:
     """加载邮件列表"""
@@ -108,14 +128,15 @@ async def process_email_with_agent(llm_choice: str, system_prompt: str, progress
     try:
         progress(0, desc="初始化AI Agent...")
         
-        # 根据选择获取Agent
-        model_mapping = {
-            "Claude 3.5 Sonnet": ("bedrock", "claude-3-5-sonnet"),
-            "Claude 3.7 Sonnet": ("bedrock", "claude-3-7-sonnet")
+        # 根据选择获取Agent - 使用集中化的模型映射
+        # 将UI显示名称映射到内部模型名称
+        ui_to_model_mapping = {
+            "Claude 3.5 Sonnet": "claude-3-5-sonnet",
+            "Claude 3.7 Sonnet": "claude-3-7-sonnet",
         }
         
-        model_provider, model_name = model_mapping.get(llm_choice, ("bedrock", "claude-3-7-sonnet"))
-        agent = get_agent(model_provider, model_name)
+        model_name = ui_to_model_mapping.get(llm_choice, "claude-3-7-sonnet")
+        agent = get_agent("bedrock", model_name)
         
         # 如果提供了自定义system prompt，更新Agent
         if system_prompt.strip():
@@ -210,7 +231,7 @@ def create_interface() -> gr.Blocks:
                 
                 # LLM选择
                 llm_choice = gr.Dropdown(
-                    choices=["Claude 3.5 Sonnet", "Claude 3.7 Sonnet"],
+                    choices=get_model_choices(),
                     value="Claude 3.7 Sonnet",
                     label="🤖 选择LLM模型",
                     info="选择用于处理邮件的AI模型"
@@ -251,7 +272,7 @@ def create_interface() -> gr.Blocks:
                 with gr.Row():
                     refresh_btn = gr.Button("🔄 刷新邮件", variant="secondary")
                     view_btn = gr.Button("👁️ 查看邮件信息", variant="secondary")
-                    process_btn = gr.Button("🤖 AI Agent Loop", variant="primary")
+                    process_btn = gr.Button("🤖 AI Copilot", variant="primary")
                 
                 # AI处理结果展示区域
                 with gr.Accordion("🔍 AI处理结果", open=False) as result_accordion:

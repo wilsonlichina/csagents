@@ -1,21 +1,22 @@
 """
-AI Agent模块
-使用Strands SDK定义LCSC邮件客服智能代理
+AI Agent Module
+Using Strands SDK to define LCSC Email Customer Service Intelligent Agent
 """
 
 import asyncio
-from typing import Dict, List, Optional, AsyncGenerator
+from typing import Dict, List, Optional, AsyncGenerator, Tuple
 from dataclasses import dataclass
 from datetime import datetime
 
 from strands import Agent
 from strands_tools import current_time
+from strands.models import BedrockModel
 from business_tools import BUSINESS_TOOLS
 from email_manager import EmailData
 
 @dataclass
 class ProcessingResult:
-    """处理结果数据结构"""
+    """Processing result data structure"""
     email_id: str
     intent: str
     confidence: float
@@ -26,28 +27,88 @@ class ProcessingResult:
     timestamp: str
 
 class LCSCEmailAgent:
-    """LCSC邮件客服智能代理"""
+    """LCSC Email Customer Service Intelligent Agent"""
+    
+    # Model name to model ID mapping
+    MODEL_MAPPING = {
+        "claude-3-5-sonnet": "us.anthropic.claude-3-5-sonnet-20240620-v1:0",
+        "claude-3-7-sonnet": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+    }
     
     def __init__(self, model_provider: str = "bedrock", model_name: str = "claude-3-7-sonnet"):
         """
-        初始化Agent
+        Initialize Agent
         
         Args:
-            model_provider: 模型提供商 (bedrock, openai等)
-            model_name: 模型名称
+            model_provider: Model provider (bedrock, openai, etc.)
+            model_name: Model name (claude-3-5-sonnet, claude-3-7-sonnet)
         """
         self.model_provider = model_provider
         self.model_name = model_name
         
-        # 创建Strands Agent
+        # Get corresponding model ID
+        model_id = self._get_model_id(model_name)
+        
+        print(f"🔧 Model mapping: {model_name} -> {model_id}")
+
+        # Create a BedrockModel
+        bedrock_model = BedrockModel(
+            model_id=model_id,
+            region_name='us-west-2',
+            temperature=0.3,
+            )
+        
+        # Create Strands Agent
         self.agent = Agent(
+            model=bedrock_model,
             tools=BUSINESS_TOOLS + [current_time],
             system_prompt=self._get_system_prompt()
         )
         
-        print(f"🤖 LCSC邮件客服Agent初始化完成")
-        print(f"   模型: {model_provider}/{model_name}")
-        print(f"   工具数量: {len(BUSINESS_TOOLS) + 1}")
+        print(f"🤖 LCSC Email Customer Service Agent initialized successfully")
+        print(f"   Model: {model_provider}/{model_name}")
+        print(f"   Model ID: {model_id}")
+        print(f"   Number of tools: {len(BUSINESS_TOOLS) + 1}")
+    
+    def _get_model_id(self, model_name: str) -> str:
+        """
+        Get corresponding model ID based on model name
+        
+        Args:
+            model_name: Model name
+            
+        Returns:
+            str: Corresponding model ID
+            
+        Raises:
+            ValueError: If model name is not supported
+        """
+        if model_name in self.MODEL_MAPPING:
+            return self.MODEL_MAPPING[model_name]
+        else:
+            # If no mapping found, list supported models
+            supported_models = list(self.MODEL_MAPPING.keys())
+            raise ValueError(
+                f"Unsupported model name: {model_name}\n"
+                f"Supported models: {', '.join(supported_models)}"
+            )
+    
+    @classmethod
+    def get_supported_models(cls) -> List[str]:
+        """Get list of supported models"""
+        return list(cls.MODEL_MAPPING.keys())
+    
+    @classmethod
+    def get_model_id_by_name(cls, model_name: str) -> str:
+        """Get model ID by model name (class method)"""
+        if model_name in cls.MODEL_MAPPING:
+            return cls.MODEL_MAPPING[model_name]
+        else:
+            supported_models = list(cls.MODEL_MAPPING.keys())
+            raise ValueError(
+                f"Unsupported model name: {model_name}\n"
+                f"Supported models: {', '.join(supported_models)}"
+            )
     
     def _get_system_prompt(self) -> str:
         """Get system prompt"""
@@ -101,36 +162,36 @@ Please always maintain professional, accurate, and efficient service standards.
     
     async def process_email(self, email_data: EmailData, progress_callback=None) -> ProcessingResult:
         """
-        处理邮件并返回结果
+        Process email and return results
         
         Args:
-            email_data: 邮件数据
-            progress_callback: 进度回调函数
+            email_data: Email data
+            progress_callback: Progress callback function
             
         Returns:
-            ProcessingResult: 处理结果
+            ProcessingResult: Processing results
         """
         try:
             if progress_callback:
-                progress_callback("🔍 开始分析邮件内容...")
+                progress_callback("🔍 Starting email content analysis...")
             
-            # 构建处理提示
+            # Build processing prompt
             prompt = self._build_processing_prompt(email_data)
             
             if progress_callback:
-                progress_callback("🤖 AI Agent正在处理...")
+                progress_callback("🤖 AI Agent is processing...")
             
-            # 使用Agent处理
+            # Process with Agent
             response = await self._run_agent_async(prompt)
             
             if progress_callback:
-                progress_callback("📊 分析处理结果...")
+                progress_callback("📊 Analyzing processing results...")
             
-            # 分析结果
+            # Analyze results
             result = ProcessingResult(
                 email_id=email_data.file_name,
-                intent=email_data.parsed_info.get('intent', '未知'),
-                confidence=0.85,  # 模拟置信度
+                intent=email_data.parsed_info.get('intent', 'Unknown'),
+                confidence=0.85,  # Simulated confidence
                 actions_taken=self._extract_actions(response),
                 tools_used=self._extract_tools_used(response),
                 results=self._extract_results(response),
@@ -139,19 +200,19 @@ Please always maintain professional, accurate, and efficient service standards.
             )
             
             if progress_callback:
-                progress_callback("✅ 处理完成！")
+                progress_callback("✅ Processing completed!")
             
             return result
             
         except Exception as e:
-            error_msg = f"处理邮件时发生错误: {str(e)}"
+            error_msg = f"Error occurred while processing email: {str(e)}"
             print(f"❌ {error_msg}")
             
             return ProcessingResult(
                 email_id=email_data.file_name,
-                intent="处理失败",
+                intent="Processing failed",
                 confidence=0.0,
-                actions_taken=["错误处理"],
+                actions_taken=["Error handling"],
                 tools_used=[],
                 results={"error": error_msg},
                 response=error_msg,
@@ -159,79 +220,79 @@ Please always maintain professional, accurate, and efficient service standards.
             )
     
     def _build_processing_prompt(self, email_data: EmailData) -> str:
-        """构建处理提示"""
+        """Build processing prompt"""
         return f"""
-请分析并处理以下客户邮件：
+Please analyze and process the following customer email:
 
-## 邮件信息
-- 文件名: {email_data.file_name}
-- 主题: {email_data.subject}
-- 发件人: {email_data.sender}
-- 发送时间: {email_data.send_time}
-- 邮件类型: {email_data.parsed_info.get('email_type', '未知')}
-- 识别意图: {email_data.parsed_info.get('intent', '未知')}
+## Email Information
+- File name: {email_data.file_name}
+- Subject: {email_data.subject}
+- Sender: {email_data.sender}
+- Send time: {email_data.send_time}
+- Email type: {email_data.parsed_info.get('email_type', 'Unknown')}
+- Identified intent: {email_data.parsed_info.get('intent', 'Unknown')}
 
-## 邮件内容
+## Email Content
 {email_data.content}
 
-## 提取的产品信息
+## Extracted Product Information
 {email_data.parsed_info.get('products', [])}
 
-## 处理要求
-1. 根据邮件内容和发件人信息，查询相关的客户和订单信息
-2. 如果涉及订单变更（修改地址、增删产品、取消订单、合并订单），请立即执行订单拦截
-3. 提供专业的客服回复，包括：
-   - 确认收到客户的请求
-   - 说明已执行的操作
-   - 提供相关的订单/产品信息
-   - 给出后续处理建议
+## Processing Requirements
+1. Based on email content and sender information, query relevant customer and order information
+2. If order changes are involved (address modification, product addition/removal, order cancellation, order merging), immediately execute order interception
+3. Provide professional customer service response, including:
+   - Confirm receipt of customer request
+   - Explain operations that have been executed
+   - Provide relevant order/product information
+   - Give follow-up processing recommendations
 
-请开始处理这封邮件。
+Please start processing this email.
 """
     
     async def _run_agent_async(self, prompt: str) -> str:
-        """异步运行Agent"""
+        """Run Agent asynchronously"""
         try:
-            # 由于Strands Agent可能不支持异步，我们在线程池中运行
+            # Since Strands Agent may not support async, we run it in thread pool
             loop = asyncio.get_event_loop()
             response = await loop.run_in_executor(None, self.agent, prompt)
             return str(response)
         except Exception as e:
-            print(f"Agent运行错误: {str(e)}")
-            return f"Agent处理失败: {str(e)}"
+            print(f"Agent execution error: {str(e)}")
+            return f"Agent processing failed: {str(e)}"
     
     def _extract_actions(self, response: str) -> List[str]:
-        """从响应中提取执行的动作"""
+        """Extract executed actions from response"""
         actions = []
         
-        # 简单的关键词匹配来识别动作
-        if "查询订单" in response or "query_order_by_id" in response:
-            actions.append("查询订单信息")
-        if "查询客户" in response or "query_customer_by_email" in response:
-            actions.append("查询客户信息")
-        if "拦截发货" in response or "intercept_order_shipping" in response:
-            actions.append("拦截订单发货")
-        if "查询库存" in response or "query_inventory_status" in response:
-            actions.append("查询库存状态")
-        if "查询物流" in response or "query_logistics_status" in response:
-            actions.append("查询物流状态")
-        if "查询产品" in response or "query_product_by_id" in response:
-            actions.append("查询产品信息")
+        # Simple keyword matching to identify actions
+        if "query order" in response.lower() or "query_order_by_id" in response:
+            actions.append("Query order information")
+        if "query customer" in response.lower() or "query_customer_by_email" in response:
+            actions.append("Query customer information")
+        if "intercept shipping" in response.lower() or "intercept_order_shipping" in response:
+            actions.append("Intercept order shipping")
+        if "query inventory" in response.lower() or "query_inventory_status" in response:
+            actions.append("Query inventory status")
+        if "query logistics" in response.lower() or "query_logistics_status" in response:
+            actions.append("Query logistics status")
+        if "query product" in response.lower() or "query_product_by_id" in response:
+            actions.append("Query product information")
             
-        return actions if actions else ["分析邮件内容"]
+        return actions if actions else ["Analyze email content"]
     
     def _extract_tools_used(self, response: str) -> List[str]:
-        """从响应中提取使用的工具"""
+        """Extract tools used from response"""
         tools = []
         
         tool_keywords = {
-            "query_order_by_id": "订单查询工具",
-            "query_customer_by_email": "客户查询工具", 
-            "intercept_order_shipping": "订单拦截工具",
-            "query_inventory_status": "库存查询工具",
-            "query_logistics_status": "物流查询工具",
-            "query_product_by_id": "产品查询工具",
-            "current_time": "时间工具"
+            "query_order_by_id": "Order Query Tool",
+            "query_customer_by_email": "Customer Query Tool", 
+            "intercept_order_shipping": "Order Interception Tool",
+            "query_inventory_status": "Inventory Query Tool",
+            "query_logistics_status": "Logistics Query Tool",
+            "query_product_by_id": "Product Query Tool",
+            "current_time": "Time Tool"
         }
         
         for tool_name, tool_desc in tool_keywords.items():
@@ -241,7 +302,7 @@ Please always maintain professional, accurate, and efficient service standards.
         return tools
     
     def _extract_results(self, response: str) -> Dict:
-        """从响应中提取结果数据"""
+        """Extract result data from response"""
         return {
             "response_length": len(response),
             "processing_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -249,39 +310,109 @@ Please always maintain professional, accurate, and efficient service standards.
         }
     
     async def process_email_stream(self, email_data: EmailData) -> AsyncGenerator[str, None]:
-        """流式处理邮件，实时返回进度"""
-        yield "🔍 开始分析邮件内容..."
+        """Stream process email, return progress in real-time"""
+        yield "🔍 Starting email content analysis..."
         await asyncio.sleep(0.5)
         
-        yield f"📧 邮件主题: {email_data.subject}"
-        yield f"👤 发件人: {email_data.sender}"
-        yield f"🎯 识别意图: {email_data.parsed_info.get('intent', '未知')}"
+        yield f"📧 Email subject: {email_data.subject}"
+        yield f"👤 Sender: {email_data.sender}"
+        yield f"🎯 Identified intent: {email_data.parsed_info.get('intent', 'Unknown')}"
         await asyncio.sleep(0.5)
         
-        yield "🤖 启动AI Agent处理..."
+        yield "🤖 Starting AI Agent processing..."
         await asyncio.sleep(1)
         
         try:
-            # 构建提示并处理
+            # Build prompt and process
             prompt = self._build_processing_prompt(email_data)
-            yield "⚙️  正在调用业务工具..."
+            yield "⚙️  Calling business tools..."
             
             response = await self._run_agent_async(prompt)
             
-            yield "✅ AI处理完成！"
-            yield f"📝 处理结果:\n{response}"
+            yield "✅ AI processing completed!"
+            yield f"📝 Processing results:\n{response}"
             
         except Exception as e:
-            yield f"❌ 处理失败: {str(e)}"
+            yield f"❌ Processing failed: {str(e)}"
 
-# 全局Agent实例
+# Global Agent instance
 lcsc_agent = None
+current_model_config = None
 
 def get_agent(model_provider: str = "bedrock", model_name: str = "claude-3-7-sonnet") -> LCSCEmailAgent:
-    """获取Agent实例（单例模式）"""
-    global lcsc_agent
+    """
+    Get Agent instance (singleton pattern, supports model switching)
     
-    if lcsc_agent is None:
+    Args:
+        model_provider: Model provider
+        model_name: Model name
+        
+    Returns:
+        LCSCEmailAgent: Agent instance
+    """
+    global lcsc_agent, current_model_config
+    
+    new_config = (model_provider, model_name)
+    
+    # If configuration changes or Agent doesn't exist, recreate
+    if lcsc_agent is None or current_model_config != new_config:
+        print(f"🔄 Creating new Agent instance: {model_provider}/{model_name}")
         lcsc_agent = LCSCEmailAgent(model_provider, model_name)
+        current_model_config = new_config
     
     return lcsc_agent
+
+def reset_agent():
+    """Reset Agent instance"""
+    global lcsc_agent, current_model_config
+    lcsc_agent = None
+    current_model_config = None
+    print("🔄 Agent instance has been reset")
+
+def get_available_models() -> Dict[str, str]:
+    """
+    Get list of available models
+    
+    Returns:
+        Dict[str, str]: Model name to model ID mapping
+    """
+    return LCSCEmailAgent.MODEL_MAPPING.copy()
+
+def validate_model_name(model_name: str) -> bool:
+    """
+    Validate if model name is supported
+    
+    Args:
+        model_name: Model name to validate
+        
+    Returns:
+        bool: Whether the model is supported
+    """
+    return model_name in LCSCEmailAgent.MODEL_MAPPING
+
+def get_model_info(model_name: str) -> Dict[str, str]:
+    """
+    Get model information
+    
+    Args:
+        model_name: Model name
+        
+    Returns:
+        Dict[str, str]: Dictionary containing model name and ID
+    """
+    if validate_model_name(model_name):
+        return {
+            "model_name": model_name,
+            "model_id": LCSCEmailAgent.MODEL_MAPPING[model_name],
+            "provider": "bedrock"
+        }
+    else:
+        raise ValueError(f"Unsupported model name: {model_name}")
+
+# Convenience function: print all supported models
+def print_supported_models():
+    """Print all supported models"""
+    print("🤖 Supported models list:")
+    for model_name, model_id in LCSCEmailAgent.MODEL_MAPPING.items():
+        print(f"   {model_name} -> {model_id}")
+    print(f"   Total: {len(LCSCEmailAgent.MODEL_MAPPING)} models")

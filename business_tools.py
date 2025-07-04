@@ -9,14 +9,14 @@ import random
 import time
 from datetime import datetime, timedelta
 
-# 模拟数据库
+# Mock Database for Global Users
 MOCK_CUSTOMERS = {
     "customer1@example.com": {
         "customer_id": "CUST001",
-        "name": "张三",
+        "name": "Zhang San",
         "email": "customer1@example.com",
         "phone": "+86-138-0000-0001",
-        "company": "深圳科技有限公司",
+        "company": "Shenzhen Technology Co., Ltd.",
         "country": "China",
         "registration_date": "2023-01-15",
         "vip_level": "Gold"
@@ -30,6 +30,16 @@ MOCK_CUSTOMERS = {
         "country": "United States",
         "registration_date": "2023-03-20",
         "vip_level": "Silver"
+    },
+    "customer3@example.com": {
+        "customer_id": "CUST003",
+        "name": "Maria Garcia",
+        "email": "customer3@example.com",
+        "phone": "+34-600-123-456",
+        "company": "European Electronics Ltd",
+        "country": "Spain",
+        "registration_date": "2023-05-10",
+        "vip_level": "Bronze"
     }
 }
 
@@ -38,67 +48,93 @@ MOCK_ORDERS = {
         "order_id": "LC123456",
         "customer_id": "CUST001",
         "customer_email": "customer1@example.com",
-        "status": "已确认",
+        "status": "Confirmed",
         "create_time": "2024-07-01 10:30:00",
         "total_amount": 1580.50,
         "currency": "CNY",
-        "shipping_address": "深圳市南山区科技园南区",
+        "shipping_address": "Nanshan District, Shenzhen Technology Park, China",
         "products": [
-            {"product_id": "08-50-0113", "name": "连接器", "quantity": 20000, "unit_price": 0.05},
-            {"product_id": "22-01-1042", "name": "电阻", "quantity": 5000, "unit_price": 0.02}
+            {"product_id": "08-50-0113", "name": "Connector", "quantity": 20000, "unit_price": 0.05},
+            {"product_id": "22-01-1042", "name": "Resistor", "quantity": 5000, "unit_price": 0.02}
         ],
-        "shipping_status": "待发货"
+        "shipping_status": "Pending Shipment"
     },
     "LC789012": {
         "order_id": "LC789012",
         "customer_id": "CUST002",
         "customer_email": "customer2@example.com", 
-        "status": "已发货",
+        "status": "Shipped",
         "create_time": "2024-06-28 14:20:00",
         "total_amount": 2350.00,
         "currency": "USD",
-        "shipping_address": "123 Tech Street, San Francisco, CA 94105",
+        "shipping_address": "123 Tech Street, San Francisco, CA 94105, USA",
         "products": [
-            {"product_id": "42816-0212", "name": "芯片", "quantity": 200, "unit_price": 11.75}
+            {"product_id": "42816-0212", "name": "Microcontroller Chip", "quantity": 200, "unit_price": 11.75}
         ],
-        "shipping_status": "运输中",
+        "shipping_status": "In Transit",
         "tracking_number": "SF1234567890"
+    },
+    "LC345678": {
+        "order_id": "LC345678",
+        "customer_id": "CUST003",
+        "customer_email": "customer3@example.com",
+        "status": "Processing",
+        "create_time": "2024-07-02 09:15:00",
+        "total_amount": 890.25,
+        "currency": "EUR",
+        "shipping_address": "Calle Mayor 45, Madrid 28013, Spain",
+        "products": [
+            {"product_id": "08-50-0113", "name": "Connector", "quantity": 5000, "unit_price": 0.05},
+            {"product_id": "22-01-1042", "name": "Resistor", "quantity": 10000, "unit_price": 0.02}
+        ],
+        "shipping_status": "Preparing"
     }
 }
 
 MOCK_PRODUCTS = {
     "08-50-0113": {
         "product_id": "08-50-0113",
-        "name": "Molex 连接器",
-        "category": "连接器",
+        "name": "Molex Connector",
+        "category": "Connectors",
         "unit_price": 0.05,
         "currency": "CNY",
-        "stock_status": "现货",
+        "stock_status": "In Stock",
         "stock_quantity": 500000,
         "min_order_qty": 1000,
-        "lead_time": "1-3天"
+        "lead_time": "1-3 days"
     },
     "22-01-1042": {
         "product_id": "22-01-1042", 
-        "name": "1K欧姆电阻",
-        "category": "电阻",
+        "name": "1K Ohm Resistor",
+        "category": "Resistors",
         "unit_price": 0.02,
         "currency": "CNY", 
-        "stock_status": "现货",
+        "stock_status": "In Stock",
         "stock_quantity": 1000000,
         "min_order_qty": 100,
-        "lead_time": "1-3天"
+        "lead_time": "1-3 days"
     },
     "42816-0212": {
         "product_id": "42816-0212",
-        "name": "STM32 微控制器",
-        "category": "芯片",
+        "name": "STM32 Microcontroller",
+        "category": "Microcontrollers",
         "unit_price": 11.75,
         "currency": "USD",
-        "stock_status": "订货",
+        "stock_status": "On Order",
         "stock_quantity": 0,
         "min_order_qty": 10,
-        "lead_time": "4-6周"
+        "lead_time": "4-6 weeks"
+    },
+    "75-12-3456": {
+        "product_id": "75-12-3456",
+        "name": "Ceramic Capacitor 10uF",
+        "category": "Capacitors",
+        "unit_price": 0.08,
+        "currency": "USD",
+        "stock_status": "In Stock",
+        "stock_quantity": 250000,
+        "min_order_qty": 500,
+        "lead_time": "1-2 days"
     }
 }
 
@@ -113,22 +149,22 @@ def query_order_by_id(order_id: str) -> Dict:
     Returns:
         Dict: Detailed order information including status, products, amount, etc.
     """
-    print(f"🔍 查询订单: {order_id}")
+    print(f"🔍 Querying order: {order_id}")
     
     if order_id in MOCK_ORDERS:
         order = MOCK_ORDERS[order_id].copy()
-        print(f"✅ 找到订单: {order_id}, 状态: {order['status']}")
+        print(f"✅ Order found: {order_id}, Status: {order['status']}")
         return {
             "success": True,
             "data": order,
-            "message": f"成功查询到订单 {order_id}"
+            "message": f"Successfully retrieved order {order_id}"
         }
     else:
-        print(f"❌ 订单不存在: {order_id}")
+        print(f"❌ Order not found: {order_id}")
         return {
             "success": False,
             "data": None,
-            "message": f"订单 {order_id} 不存在"
+            "message": f"Order {order_id} does not exist"
         }
 
 @tool
@@ -142,22 +178,22 @@ def query_customer_by_email(email: str) -> Dict:
     Returns:
         Dict: Detailed customer information
     """
-    print(f"🔍 查询客户: {email}")
+    print(f"🔍 Querying customer: {email}")
     
     if email in MOCK_CUSTOMERS:
         customer = MOCK_CUSTOMERS[email].copy()
-        print(f"✅ 找到客户: {customer['name']} ({customer['customer_id']})")
+        print(f"✅ Customer found: {customer['name']} ({customer['customer_id']})")
         return {
             "success": True,
             "data": customer,
-            "message": f"成功查询到客户 {email}"
+            "message": f"Successfully retrieved customer {email}"
         }
     else:
-        print(f"❌ 客户不存在: {email}")
+        print(f"❌ Customer not found: {email}")
         return {
             "success": False,
             "data": None,
-            "message": f"客户 {email} 不存在"
+            "message": f"Customer {email} does not exist"
         }
 
 @tool
@@ -171,7 +207,7 @@ def query_orders_by_customer(customer_email: str) -> Dict:
     Returns:
         Dict: List of customer orders
     """
-    print(f"🔍 查询客户订单: {customer_email}")
+    print(f"🔍 Querying customer orders: {customer_email}")
     
     customer_orders = []
     for order_id, order in MOCK_ORDERS.items():
@@ -179,18 +215,18 @@ def query_orders_by_customer(customer_email: str) -> Dict:
             customer_orders.append(order)
     
     if customer_orders:
-        print(f"✅ 找到 {len(customer_orders)} 个订单")
+        print(f"✅ Found {len(customer_orders)} orders")
         return {
             "success": True,
             "data": customer_orders,
-            "message": f"客户 {customer_email} 共有 {len(customer_orders)} 个订单"
+            "message": f"Customer {customer_email} has {len(customer_orders)} orders"
         }
     else:
-        print(f"❌ 未找到订单")
+        print(f"❌ No orders found")
         return {
             "success": False,
             "data": [],
-            "message": f"客户 {customer_email} 暂无订单"
+            "message": f"Customer {customer_email} has no orders"
         }
 
 @tool
@@ -204,22 +240,22 @@ def query_product_by_id(product_id: str) -> Dict:
     Returns:
         Dict: Detailed product information
     """
-    print(f"🔍 查询产品: {product_id}")
+    print(f"🔍 Querying product: {product_id}")
     
     if product_id in MOCK_PRODUCTS:
         product = MOCK_PRODUCTS[product_id].copy()
-        print(f"✅ 找到产品: {product['name']}")
+        print(f"✅ Product found: {product['name']}")
         return {
             "success": True,
             "data": product,
-            "message": f"成功查询到产品 {product_id}"
+            "message": f"Successfully retrieved product {product_id}"
         }
     else:
-        print(f"❌ 产品不存在: {product_id}")
+        print(f"❌ Product not found: {product_id}")
         return {
             "success": False,
             "data": None,
-            "message": f"产品 {product_id} 不存在"
+            "message": f"Product {product_id} does not exist"
         }
 
 @tool
@@ -233,7 +269,7 @@ def query_inventory_status(product_id: str) -> Dict:
     Returns:
         Dict: Inventory status information (in stock/on order)
     """
-    print(f"🔍 查询库存: {product_id}")
+    print(f"🔍 Querying inventory: {product_id}")
     
     if product_id in MOCK_PRODUCTS:
         product = MOCK_PRODUCTS[product_id]
@@ -247,24 +283,24 @@ def query_inventory_status(product_id: str) -> Dict:
             "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         
-        print(f"✅ 库存状态: {product['stock_status']}, 数量: {product['stock_quantity']}")
+        print(f"✅ Stock status: {product['stock_status']}, Quantity: {product['stock_quantity']}")
         return {
             "success": True,
             "data": inventory_info,
-            "message": f"产品 {product_id} 库存状态: {product['stock_status']}"
+            "message": f"Product {product_id} stock status: {product['stock_status']}"
         }
     else:
-        print(f"❌ 产品不存在: {product_id}")
+        print(f"❌ Product not found: {product_id}")
         return {
             "success": False,
             "data": None,
-            "message": f"产品 {product_id} 不存在"
+            "message": f"Product {product_id} does not exist"
         }
 
 @tool
 def intercept_order_shipping(order_id: str, reason: str) -> Dict:
     """
-    Intercept order shipping
+    Intercept order shipping - Critical business operation
     
     Args:
         order_id (str): Order ID
@@ -273,48 +309,48 @@ def intercept_order_shipping(order_id: str, reason: str) -> Dict:
     Returns:
         Dict: Interception operation result
     """
-    print(f"🛑 拦截订单发货: {order_id}, 原因: {reason}")
+    print(f"🛑 Intercepting order shipment: {order_id}, Reason: {reason}")
     
     if order_id in MOCK_ORDERS:
         order = MOCK_ORDERS[order_id]
         
-        if order["shipping_status"] == "已发货":
-            print(f"❌ 订单已发货，无法拦截")
+        if order["shipping_status"] in ["Shipped", "In Transit", "Delivered"]:
+            print(f"❌ Order already shipped, cannot intercept")
             return {
                 "success": False,
                 "data": None,
-                "message": f"订单 {order_id} 已发货，无法拦截"
+                "message": f"Order {order_id} has already been shipped and cannot be intercepted"
             }
-        elif order["shipping_status"] == "已拦截":
-            print(f"⚠️  订单已被拦截")
+        elif order["shipping_status"] == "Intercepted":
+            print(f"⚠️  Order already intercepted")
             return {
                 "success": True,
-                "data": {"status": "已拦截", "reason": reason},
-                "message": f"订单 {order_id} 已处于拦截状态"
+                "data": {"status": "Intercepted", "reason": reason},
+                "message": f"Order {order_id} is already intercepted"
             }
         else:
-            # 执行拦截操作
-            MOCK_ORDERS[order_id]["shipping_status"] = "已拦截"
+            # Execute interception
+            MOCK_ORDERS[order_id]["shipping_status"] = "Intercepted"
             MOCK_ORDERS[order_id]["intercept_reason"] = reason
             MOCK_ORDERS[order_id]["intercept_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             
-            print(f"✅ 订单拦截成功")
+            print(f"✅ Order interception successful")
             return {
                 "success": True,
                 "data": {
                     "order_id": order_id,
-                    "status": "已拦截",
+                    "status": "Intercepted",
                     "reason": reason,
                     "intercept_time": MOCK_ORDERS[order_id]["intercept_time"]
                 },
-                "message": f"订单 {order_id} 拦截成功"
+                "message": f"Order {order_id} has been successfully intercepted"
             }
     else:
-        print(f"❌ 订单不存在: {order_id}")
+        print(f"❌ Order not found: {order_id}")
         return {
             "success": False,
             "data": None,
-            "message": f"订单 {order_id} 不存在"
+            "message": f"Order {order_id} does not exist"
         }
 
 @tool
@@ -328,7 +364,7 @@ def query_logistics_status(order_id: str) -> Dict:
     Returns:
         Dict: Logistics status information
     """
-    print(f"🚚 查询物流状态: {order_id}")
+    print(f"🚚 Querying logistics status: {order_id}")
     
     if order_id in MOCK_ORDERS:
         order = MOCK_ORDERS[order_id]
@@ -341,29 +377,34 @@ def query_logistics_status(order_id: str) -> Dict:
             "estimated_delivery": (datetime.now() + timedelta(days=3)).strftime("%Y-%m-%d")
         }
         
-        # 模拟物流轨迹
-        if order["shipping_status"] == "运输中":
+        # Simulate tracking history
+        if order["shipping_status"] == "In Transit":
             logistics_info["tracking_history"] = [
-                {"time": "2024-07-01 10:00", "status": "已发货", "location": "深圳仓库"},
-                {"time": "2024-07-01 18:00", "status": "运输中", "location": "深圳转运中心"},
-                {"time": "2024-07-02 08:00", "status": "运输中", "location": "广州转运中心"}
+                {"time": "2024-07-01 10:00", "status": "Shipped", "location": "Shenzhen Warehouse"},
+                {"time": "2024-07-01 18:00", "status": "In Transit", "location": "Shenzhen Distribution Center"},
+                {"time": "2024-07-02 08:00", "status": "In Transit", "location": "Guangzhou Distribution Center"}
+            ]
+        elif order["shipping_status"] == "Preparing":
+            logistics_info["tracking_history"] = [
+                {"time": "2024-07-02 09:15", "status": "Order Confirmed", "location": "LCSC System"},
+                {"time": "2024-07-02 14:30", "status": "Preparing", "location": "Madrid Warehouse"}
             ]
         
-        print(f"✅ 物流状态: {order['shipping_status']}")
+        print(f"✅ Logistics status: {order['shipping_status']}")
         return {
             "success": True,
             "data": logistics_info,
-            "message": f"订单 {order_id} 物流状态: {order['shipping_status']}"
+            "message": f"Order {order_id} logistics status: {order['shipping_status']}"
         }
     else:
-        print(f"❌ 订单不存在: {order_id}")
+        print(f"❌ Order not found: {order_id}")
         return {
             "success": False,
             "data": None,
-            "message": f"订单 {order_id} 不存在"
+            "message": f"Order {order_id} does not exist"
         }
 
-# 工具列表，供Agent使用
+# Business tools list for Agent usage
 BUSINESS_TOOLS = [
     query_order_by_id,
     query_customer_by_email,

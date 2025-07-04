@@ -71,7 +71,7 @@
 │ ┌─────────────┐ │  │ user2@... | lcsc@... | 2024... │ │
 │ │             │ │  └─────────────────────────────────┘ │
 │ │             │ │                                     │
-│ │             │ │  [查看邮件信息] [AI Agent Loop]     │
+│ │             │ │  [查看邮件信息] [AI Copilot]     │
 │ └─────────────┘ │                                     │
 │                 │  ┌─────────────────────────────────┐ │
 │                 │  │      AI处理结果展示区           │ │
@@ -205,7 +205,7 @@ with gr.Blocks(theme=gr.themes.Soft(), title="LCSC邮件智能客服") as demo:
             
             with gr.Row():
                 view_btn = gr.Button("查看邮件信息", variant="secondary")
-                process_btn = gr.Button("AI Agent Loop", variant="primary")
+                process_btn = gr.Button("AI Copilot", variant="primary")
             
             # AI处理结果 - 使用Accordion和Progress
             with gr.Accordion("AI处理结果", open=False):
